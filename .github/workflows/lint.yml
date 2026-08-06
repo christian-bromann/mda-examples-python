@@ -24,6 +24,7 @@ jobs:
           - daily-update
           - marketing-assistant
           - sandbox-assistant
+          - trusted-backend
 
     steps:
       - name: Checkout examples
