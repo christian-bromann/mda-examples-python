@@ -30,7 +30,7 @@ auto-posted to my DM — do not call Slack chat APIs yourself).
 """
 
 schedule = define_schedule(
-    # 7:00am Pacific, Monday–Friday (no Saturday / Sunday runs)
+    # 7:00am Pacific, Monday-Friday (no Saturday / Sunday runs)
     cron="0 7 * * 1-5",
     timezone="America/Los_Angeles",
     prompt=PROMPT,

@@ -31,6 +31,19 @@ uv run mda dev .
 
 See each example’s README for secrets, Slack/GitHub setup, and deploy steps.
 
+## Lint
+
+Each example uses [ruff](https://docs.astral.sh/ruff/) (format + lint) and
+[ty](https://docs.astral.sh/ty/) (types):
+
+```bash
+cd daily-update
+uv sync
+uv run ruff format .
+uv run ruff check .
+uv run ty check .
+```
+
 ## Deploy via GitHub Actions
 
 Use **Actions → Deploy agent → Run workflow** and pick an agent (currently

@@ -10,7 +10,10 @@ from tools.github_client import github_error, github_from_env, json_result
 
 @tool
 def get_github_user() -> str:
-    """Return the GitHub login/name for the deployment GITHUB_TOKEN. Call this before gathering activity."""
+    """Return the GitHub login/name for the deployment GITHUB_TOKEN.
+
+    Call this before gathering activity.
+    """
     client = github_from_env()
     if isinstance(client, dict):
         return json_result(client)

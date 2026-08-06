@@ -60,6 +60,16 @@ daily-update/
 Do **not** set `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` unless you intentionally
 want Connect-with-Slack. Without that OAuth path, DMs invoke the agent directly.
 
+## Lint
+
+```bash
+cd daily-update
+uv sync
+uv run ruff format .
+uv run ruff check .
+uv run ty check .
+```
+
 ## Run
 
 This project path-links `managed-deepagents` to

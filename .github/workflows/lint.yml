@@ -1,0 +1,58 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: ruff + ty (${{ matrix.agent }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        agent:
+          - daily-update
+
+    steps:
+      - name: Checkout examples
+        uses: actions/checkout@v4
+        with:
+          path: mda-examples-python
+
+      - name: Checkout Managed Deep Agents SDK
+        uses: actions/checkout@v4
+        with:
+          repository: langchain-ai/managed-deepagents-sdk
+          path: managed-deepagents-sdk
+          token: ${{ secrets.MDA_SDK_TOKEN || github.token }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version-file: mda-examples-python/.python-version
+
+      - name: Install dependencies
+        working-directory: mda-examples-python/${{ matrix.agent }}
+        run: uv sync
+
+      - name: Ruff format (check)
+        working-directory: mda-examples-python/${{ matrix.agent }}
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        working-directory: mda-examples-python/${{ matrix.agent }}
+        run: uv run ruff check .
+
+      - name: ty typecheck
+        working-directory: mda-examples-python/${{ matrix.agent }}
+        run: uv run ty check .

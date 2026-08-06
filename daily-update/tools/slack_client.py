@@ -12,9 +12,7 @@ from slack_sdk.errors import SlackApiError
 
 def slack_user_token() -> str | None:
     """User token (`xoxp-…`) for search/history — not `SLACK_BOT_TOKEN`."""
-    token = (
-        os.environ.get("SLACK_USER_TOKEN") or os.environ.get("SLACK_MCP_TOKEN") or ""
-    ).strip()
+    token = (os.environ.get("SLACK_USER_TOKEN") or os.environ.get("SLACK_MCP_TOKEN") or "").strip()
     return token or None
 
 
