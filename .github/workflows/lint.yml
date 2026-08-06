@@ -22,6 +22,7 @@ jobs:
       matrix:
         agent:
           - daily-update
+          - marketing-assistant
 
     steps:
       - name: Checkout examples
