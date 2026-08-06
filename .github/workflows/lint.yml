@@ -23,8 +23,8 @@ jobs:
         agent:
           - daily-update
           - marketing-assistant
-          - sandbox-assistant
-          - trusted-backend
+          - policy-desk
+          - account-concierge
 
     steps:
       - name: Checkout examples
