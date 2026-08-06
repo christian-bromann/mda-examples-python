@@ -23,6 +23,7 @@ jobs:
         agent:
           - daily-update
           - marketing-assistant
+          - sandbox-assistant
 
     steps:
       - name: Checkout examples
