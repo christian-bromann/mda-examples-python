@@ -72,11 +72,6 @@ uv run ty check .
 
 ## Run
 
-This project path-links `managed-deepagents` to
-`../../managed-deepagents-sdk/packages/pypi` (same local SDK layout as the
-TypeScript examples). Keep that checkout as a sibling of this repo, or edit
-`pyproject.toml` `[tool.uv.sources]` to point at a published wheel.
-
 ```bash
 cd daily-update
 uv sync
@@ -84,7 +79,7 @@ cp env.example .env
 # fill secrets + set the Slack member ID literal in schedules/morning_digest.py
 
 uv run mda dev .
-uv run mda deploy . --name daily-update
+uv run mda deploy .
 ```
 ## Manual test prompts
 

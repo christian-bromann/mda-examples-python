@@ -1,12 +1,12 @@
 [project]
-name = "marketing-assistant"
+name = "mda-example-marketing-assistant-py"
 version = "0.0.0"
 description = "Weekday HN (+ optional X) topic scan → tweet drafts on Slack; revise in chat, post manually."
 requires-python = ">=3.11"
 dependencies = [
     "langchain>=1.3.11",
     "langchain-openai>=1.3.3",
-    "managed-deepagents",
+    "managed-deepagents==0.4.3.dev95",
 ]
 
 [dependency-groups]
@@ -18,11 +18,7 @@ dev = [
 [tool.uv]
 package = false
 default-groups = ["dev"]
-
-# Match the TypeScript example: develop against the local Managed Deep Agents
-# SDK. CI / clean clones can drop this and use a published wheel instead.
-[tool.uv.sources]
-managed-deepagents = { path = "../../managed-deepagents-sdk/packages/pypi", editable = true }
+prerelease = "allow"
 
 [tool.ruff]
 line-length = 100

@@ -16,7 +16,6 @@
 #   LANGSMITH_WORKSPACE_ID    # org-scoped keys / multi-workspace
 #   LANGSMITH_ENDPOINT        # non-default LangSmith API host
 #   X_BEARER_TOKEN            # marketing-assistant X reads
-#   MDA_SDK_TOKEN             # if managed-deepagents-sdk is private
 #   MDA_GUEST_SIGNING_KEY     # policy-desk identity
 #   VITE_SUPABASE_URL         # policy-desk identity + UI
 #
@@ -25,7 +24,7 @@
 #   CLOUDFLARE_ACCOUNT_ID
 #   VITE_SUPABASE_ANON_KEY
 #   VITE_LANGGRAPH_API_URL
-#   VITE_LANGGRAPH_ASSISTANT_ID   # optional; default policy-desk
+#   VITE_LANGGRAPH_ASSISTANT_ID   # optional; default mda-example-policy-desk-py
 #
 # Add new agents to `on.workflow_dispatch.inputs.agent.options` as they land.
 
@@ -62,15 +61,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: mda-examples-python
-
-      # Authoring APIs match the local TypeScript examples (path-linked SDK).
-      # Published PyPI wheels may lag; CI therefore builds against the SDK repo.
-      - name: Checkout Managed Deep Agents SDK
-        uses: actions/checkout@v4
-        with:
-          repository: langchain-ai/managed-deepagents-sdk
-          path: managed-deepagents-sdk
-          token: ${{ secrets.MDA_SDK_TOKEN || github.token }}
 
       - name: Deploy MDA agent
         uses: ./mda-examples-python/.github/actions/deploy-mda-agent

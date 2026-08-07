@@ -58,19 +58,10 @@ cp env.example .env
 Generate any strong random string for `MDA_INGRESS_SECRET` and use the **same**
 value for `mda dev` / deploy and for the proxy.
 
-This example path-links the local SDK (`[tool.uv.sources]`), which does **not**
-ship the prebuilt `mda` binary. `make dev` / `make deploy` seed it via
-`scripts/ensure_mda_binary.py` (from a `uv tool install managed-deepagents`
-install or `managed-deepagents-sdk` cargo build).
-
-```bash
-uv tool install --prerelease allow managed-deepagents   # if you don't have mda yet
-make ensure-mda
-```
-
 ## Run locally
 
 ```bash
+uv sync
 make dev
 ```
 
@@ -98,7 +89,7 @@ curl -s -b cookies.txt -X POST \
   "http://127.0.0.1:4910/threads/${THREAD_ID}/runs/wait" \
   -H 'content-type: application/json' \
   -d '{
-    "assistant_id": "account-concierge",
+    "assistant_id": "mda-example-account-concierge-py",
     "input": { "messages": [{ "role": "user", "content": "Hi — which account am I signed in as?" }] }
   }' | jq -r '.messages[-1].content'
 ```

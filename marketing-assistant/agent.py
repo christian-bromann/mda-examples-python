@@ -11,7 +11,7 @@ from tools.search_x_posts import search_x_posts
 # Secrets from `.env` (see `env.example`) — not connectors.
 # System prompt from `instructions.md`.
 agent = define_deep_agent(
-    name="marketing-assistant",
+    name="mda-example-marketing-assistant-py",
     model="openai:gpt-5.5",
     tools=[search_hackernews, search_x_posts, get_x_user_timeline],
 )

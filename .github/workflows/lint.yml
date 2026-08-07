@@ -32,13 +32,6 @@ jobs:
         with:
           path: mda-examples-python
 
-      - name: Checkout Managed Deep Agents SDK
-        uses: actions/checkout@v4
-        with:
-          repository: langchain-ai/managed-deepagents-sdk
-          path: managed-deepagents-sdk
-          token: ${{ secrets.MDA_SDK_TOKEN || github.token }}
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
         with:

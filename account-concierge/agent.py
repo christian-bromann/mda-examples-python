@@ -9,7 +9,7 @@ from tools.whoami import whoami
 # concierge greets the member by account. `whoami` echoes the resolved identity.
 # System prompt from `instructions.md`.
 agent = define_deep_agent(
-    name="account-concierge",
+    name="mda-example-account-concierge-py",
     model="openai:gpt-5.5",
     tools=[whoami],
 )

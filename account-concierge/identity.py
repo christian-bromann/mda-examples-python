@@ -1,6 +1,6 @@
 from managed_deepagents import define_identity
 
-# Trusted-backend identity for the Account Concierge (the MDA default).
+# Trusted-backend identity for the Account Concierge.
 #
 # Your product API authenticates the member (session cookie, OAuth, SSO, …),
 # then proxies LangGraph requests with:
@@ -9,4 +9,4 @@ from managed_deepagents import define_identity
 #
 # The client never sees the ingress secret. See `proxy/server.py` for a
 # stand-in product API.
-identity = define_identity()
+identity = define_identity(auth="backend")

@@ -11,7 +11,7 @@ from middleware.stage_chat_uploads import stage_chat_uploads_middleware
 # Sandbox: `sandbox/__init__.py`. Memory: `memory.py`.
 # System prompt: `instructions.md`. UI: `src/` (Vite + Supabase login).
 agent = define_deep_agent(
-    name="policy-desk",
+    name="mda-example-policy-desk-py",
     model="openai:gpt-5.5",
     middleware=[stage_chat_uploads_middleware()],
 )

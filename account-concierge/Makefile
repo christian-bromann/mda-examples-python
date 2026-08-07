@@ -1,20 +1,17 @@
-.PHONY: ensure-mda agent proxy dev deploy
+.PHONY: agent proxy dev deploy
 
-ensure-mda:
-	uv run python scripts/ensure_mda_binary.py
-
-agent: ensure-mda
+agent:
 	uv run mda dev .
 
 proxy:
 	uv run python proxy/server.py
 
 # Agent + proxy together. Ctrl+C stops both.
-dev: ensure-mda
+dev:
 	@trap 'kill 0' EXIT INT TERM; \
 		uv run mda dev . & \
 		uv run python proxy/server.py & \
 		wait
 
-deploy: ensure-mda
+deploy:
 	uv run mda deploy .

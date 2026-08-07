@@ -75,4 +75,3 @@ owns the name `GITHUB_TOKEN`.
 | `VITE_LANGGRAPH_API_URL`     | `policy-desk` UI (MDA deployment URL)         |
 | `CLOUDFLARE_API_TOKEN`       | `policy-desk` UI                              |
 | `CLOUDFLARE_ACCOUNT_ID`      | `policy-desk` UI                              |
-| `MDA_SDK_TOKEN`              | if managed-deepagents-sdk is private          |

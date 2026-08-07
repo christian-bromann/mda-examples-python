@@ -80,4 +80,4 @@ runs:
         AGENT: ${{ inputs.agent }}
       run: |
         echo "Deploying '$AGENT' as prod"
-        uv run mda deploy . --name "$AGENT" --deployment-type prod
+        uv run mda deploy . --deployment-type prod
