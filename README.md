@@ -3,6 +3,10 @@
 A collection of [Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-overview)
 projects that show how common MDA capabilities fit together in Python.
 
+> [!NOTE]
+> For the same examples in TypeScript, see
+> [mda-examples-typescript](https://github.com/christian-bromann/mda-examples-typescript).
+
 Each subdirectory is a deployable agent project (`mda dev` / `mda deploy`).
 
 ## Examples
