@@ -7,12 +7,14 @@ multimodal human message via `useStream` / LangGraph.
 This middleware runs before the model sees that message:
 
 1. **`awrap_model_call` / `wrap_model_call`** — find allowed `file` blocks on the
-   latest human message, invoke harness `write_file` to
-   `/workspace/uploads/<safe-name>`.
-   - **Text files** (`.txt`, `.md`, `.py`, …): decode base64 → UTF-8 and pass
-     plain text (sandbox `write` treats text MIME as UTF-8).
-   - **PDFs**: pass base64 as-is (sandbox `write` decodes base64 for
-     `application/pdf`).
+   latest human message and seed them with sandbox ``aupload_files`` /
+   ``upload_files`` (HTTP dataplane), **not** harness ``write_file``.
+   ``write_file`` → ``awrite`` runs an ``execute`` mkdir preflight over the
+   websocket command stream; cold LangSmith boxes often never emit ``started``,
+   so staging hangs/fails. File-transfer upload avoids that path.
+   - **Text files**: decode base64 → raw UTF-8 bytes.
+   - **PDFs**: decode base64 → PDF bytes, also extract text with ``pypdf`` on the
+     host and upload a sibling ``.txt`` so the agent need not ``execute``.
 2. Replace heavy file blocks with a short text note listing sandbox paths.
 3. **`after_model`** — persist the rewritten human message into graph state
    (`additional_kwargs.mda_staged_uploads` holds the staged paths).
@@ -31,6 +33,7 @@ import logging
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -47,7 +50,9 @@ from langgraph.runtime import Runtime
 
 logger = logging.getLogger(__name__)
 
-UPLOAD_DIR = "/workspace/uploads"
+# Seed under /home/user (exists on LangSmith images) so HTTP upload need not
+# mkdir via websocket execute — cold boxes often never ready the command stream.
+UPLOAD_DIR = "/home/user"
 STAGED_KWARG = "mda_staged_uploads"
 
 _staged_keys: set[str] = set()
@@ -101,9 +106,11 @@ _DATA_URL_RE = re.compile(r"^data:([^;,]+)?(;base64)?,([\s\S]+)$", re.IGNORECASE
 @dataclass(frozen=True)
 class _StagedUpload:
     file_name: str
-    write_content: str
     path: str
     kind: UploadKind
+    data: bytes
+    text_path: str | None = None
+    text_data: bytes | None = None
 
 
 def _ext_of(name: str | None) -> str:
@@ -161,8 +168,11 @@ def _parse_data_url(url: str) -> tuple[str | None, str] | None:
     return match.group(1), match.group(3)
 
 
-def _decode_base64_utf8(data: str) -> str:
-    return base64.b64decode(data).decode("utf-8")
+def _extract_pdf_text(data: bytes) -> str:
+    from pypdf import PdfReader
+
+    reader = PdfReader(BytesIO(data))
+    return "\n".join((page.extract_text() or "") for page in reader.pages)
 
 
 def _collect_uploads(content: object) -> list[_StagedUpload]:
@@ -229,12 +239,33 @@ def _collect_uploads(content: object) -> list[_StagedUpload]:
             index,
             kind,
         )
+        raw = base64.b64decode(b64)
+        text_path: str | None = None
+        text_data: bytes | None = None
+        if kind == "pdf":
+            try:
+                extracted = _extract_pdf_text(raw)
+            except Exception:
+                logger.exception("[stageChatUploads] pypdf extract failed for %s", file_name)
+                extracted = ""
+            if file_name.lower().endswith(".pdf"):
+                text_name = f"{file_name[:-4]}.txt"
+            else:
+                text_name = f"{file_name}.txt"
+            text_path = f"{UPLOAD_DIR}/{text_name}"
+            text_data = extracted.encode("utf-8")
+        elif kind == "text":
+            # Reject non-UTF-8 early so we don't seed binary as "text".
+            raw.decode("utf-8")
+
         uploads.append(
             _StagedUpload(
                 file_name=file_name,
                 path=f"{UPLOAD_DIR}/{file_name}",
                 kind=kind,
-                write_content=_decode_base64_utf8(b64) if kind == "text" else b64,
+                data=raw,
+                text_path=text_path,
+                text_data=text_data,
             )
         )
         index += 1
@@ -246,9 +277,13 @@ def _staging_note(uploads: list[_StagedUpload]) -> str:
     lines: list[str] = []
     for u in uploads:
         if u.kind == "pdf":
-            lines.append(
-                f"- `{u.path}` (PDF — extract with pypdf via execute, then read the sibling .txt)"
-            )
+            if u.text_path:
+                lines.append(
+                    f"- `{u.path}` (PDF) — extracted text is at `{u.text_path}` "
+                    "(read_file / grep that .txt; do not re-extract)"
+                )
+            else:
+                lines.append(f"- `{u.path}` (PDF — extraction failed; tell the user)")
         else:
             lines.append(f"- `{u.path}` (text — read_file / grep directly)")
     header = (
@@ -301,19 +336,113 @@ def _find_write_file_tool(tools: list[BaseTool | dict[str, Any]]) -> BaseTool | 
     return None
 
 
+def _filesystem_middleware_owner(tool: BaseTool) -> Any | None:
+    """Pull the FilesystemMiddleware instance out of a harness tool closure."""
+    for attr in ("coroutine", "func"):
+        fn = getattr(tool, attr, None)
+        closure = getattr(fn, "__closure__", None)
+        if not closure:
+            continue
+        for cell in closure:
+            owner = cell.cell_contents
+            if callable(getattr(owner, "_get_backend", None)):
+                return owner
+    return None
+
+
 def _tool_runtime_for(request: ModelRequest[Any]) -> ToolRuntime[Any, Any]:
     lg_runtime = request.runtime
     tools = [t for t in request.tools if isinstance(t, BaseTool)]
+    config: dict[str, Any] = {}
+    try:
+        from langgraph.config import get_config
+
+        ambient = get_config()
+        if isinstance(ambient, dict):
+            config = ambient
+    except Exception:
+        config = {}
     return ToolRuntime(
         state=request.state,
         context=getattr(lg_runtime, "context", None),
-        config={},
+        config=config,
         stream_writer=getattr(lg_runtime, "stream_writer", lambda _x: None),
         tool_call_id=f"stage-upload-{uuid4().hex[:12]}",
         store=getattr(lg_runtime, "store", None),
         tools=tools,
         execution_info=getattr(lg_runtime, "execution_info", None),
         server_info=getattr(lg_runtime, "server_info", None),
+    )
+
+
+def _resolve_backend(request: ModelRequest[Any]) -> Any | None:
+    write_file = _find_write_file_tool(request.tools)
+    if write_file is None:
+        return None
+    owner = _filesystem_middleware_owner(write_file)
+    if owner is None:
+        return None
+    return owner._get_backend(_tool_runtime_for(request))
+
+
+def _files_to_upload(uploads: list[_StagedUpload]) -> list[tuple[str, bytes]]:
+    files: list[tuple[str, bytes]] = []
+    for upload in uploads:
+        files.append((upload.path, upload.data))
+        if upload.text_path is not None and upload.text_data is not None:
+            files.append((upload.text_path, upload.text_data))
+    return files
+
+
+def _assert_upload_ok(responses: list[Any], files: list[tuple[str, bytes]]) -> None:
+    if len(responses) != len(files):
+        msg = f"expected {len(files)} upload response(s), got {len(responses)}"
+        raise RuntimeError(msg)
+    for response, (path, _) in zip(responses, files, strict=True):
+        error = getattr(response, "error", None)
+        if error:
+            raise RuntimeError(f"failed to upload {path}: {error}")
+
+
+async def _aupload(backend: Any, files: list[tuple[str, bytes]]) -> None:
+    aupload = getattr(backend, "aupload_files", None)
+    if callable(aupload):
+        responses = await aupload(files)
+        _assert_upload_ok(list(responses), files)
+        return
+    upload = getattr(backend, "upload_files", None)
+    if callable(upload):
+        responses = upload(files)
+        _assert_upload_ok(list(responses), files)
+        return
+    msg = "sandbox backend has no upload_files / aupload_files"
+    raise RuntimeError(msg)
+
+
+def _upload(backend: Any, files: list[tuple[str, bytes]]) -> None:
+    upload = getattr(backend, "upload_files", None)
+    if callable(upload):
+        responses = upload(files)
+        _assert_upload_ok(list(responses), files)
+        return
+    msg = "sandbox backend has no upload_files"
+    raise RuntimeError(msg)
+
+
+def _rewritten_human(human: HumanMessage, uploads: list[_StagedUpload]) -> HumanMessage:
+    return HumanMessage(
+        id=human.id,
+        content=_rewrite_content(human.content, uploads),
+        additional_kwargs={
+            **(human.additional_kwargs or {}),
+            STAGED_KWARG: [
+                path
+                for u in uploads
+                for path in ((u.path, u.text_path) if u.text_path else (u.path,))
+                if path
+            ],
+        },
+        response_metadata=human.response_metadata,
     )
 
 
@@ -342,40 +471,76 @@ async def _stage_uploads(
         return None
 
     key = _message_key(human)
-    write_file = _find_write_file_tool(request.tools)
-    if write_file is None:
+    backend = _resolve_backend(request)
+    if backend is None:
         logger.warning(
-            "[stageChatUploads] write_file tool unavailable; leaving file blocks in the message"
+            "[stageChatUploads] sandbox backend unavailable; leaving file blocks in the message"
         )
         return None
 
     if key not in _staged_keys:
-        tool_runtime = _tool_runtime_for(request)
-        for upload in uploads:
-            try:
-                await write_file.ainvoke(
-                    {
-                        "file_path": upload.path,
-                        "content": upload.write_content,
-                        "runtime": tool_runtime,
-                    }
-                )
-            except Exception:
-                logger.exception("[stageChatUploads] failed to stage %s", upload.path)
-                return None
+        files = _files_to_upload(uploads)
+        try:
+            await _aupload(backend, files)
+        except Exception:
+            logger.exception(
+                "[stageChatUploads] failed to stage %s",
+                ", ".join(u.path for u in uploads),
+            )
+            return None
         _staged_keys.add(key)
 
-    rewritten = HumanMessage(
-        id=human.id,
-        content=_rewrite_content(human.content, uploads),
-        additional_kwargs={
-            **(human.additional_kwargs or {}),
-            STAGED_KWARG: [u.path for u in uploads],
-        },
-        response_metadata=human.response_metadata,
-    )
+    rewritten = _rewritten_human(human, uploads)
     _pending_rewrites[key] = rewritten
 
+    next_messages = list(messages)
+    next_messages[last_human_index] = rewritten
+    return request.override(messages=next_messages)
+
+
+def _stage_uploads_sync(request: ModelRequest[Any]) -> ModelRequest[Any] | None:
+    messages = request.messages
+    if not messages:
+        return None
+
+    last_human_index = -1
+    for i in range(len(messages) - 1, -1, -1):
+        if isinstance(messages[i], HumanMessage):
+            last_human_index = i
+            break
+    if last_human_index < 0:
+        return None
+
+    human = messages[last_human_index]
+    if _already_staged(human):
+        return None
+
+    uploads = _collect_uploads(human.content)
+    if not uploads:
+        return None
+
+    key = _message_key(human)
+    backend = _resolve_backend(request)
+    if backend is None:
+        logger.warning(
+            "[stageChatUploads] sandbox backend unavailable; leaving file blocks in the message"
+        )
+        return None
+
+    if key not in _staged_keys:
+        files = _files_to_upload(uploads)
+        try:
+            _upload(backend, files)
+        except Exception:
+            logger.exception(
+                "[stageChatUploads] failed to stage %s",
+                ", ".join(u.path for u in uploads),
+            )
+            return None
+        _staged_keys.add(key)
+
+    rewritten = _rewritten_human(human, uploads)
+    _pending_rewrites[key] = rewritten
     next_messages = list(messages)
     next_messages[last_human_index] = rewritten
     return request.override(messages=next_messages)
@@ -421,66 +586,8 @@ class _StageChatUploadsMiddleware(AgentMiddleware[AgentState[Any], Any]):
         request: ModelRequest[Any],
         handler: Callable[[ModelRequest[Any]], ModelResponse[Any]],
     ) -> ModelResponse[Any]:
-        # Sync path: stage via asyncio when an event loop is not running is awkward;
-        # prefer awrap_model_call. Still implement a best-effort sync stage using
-        # tool.invoke for environments that call the graph synchronously.
-        messages = request.messages
-        if not messages:
-            return handler(request)
-
-        last_human_index = -1
-        for i in range(len(messages) - 1, -1, -1):
-            if isinstance(messages[i], HumanMessage):
-                last_human_index = i
-                break
-        if last_human_index < 0:
-            return handler(request)
-
-        human = messages[last_human_index]
-        if _already_staged(human):
-            return handler(request)
-
-        uploads = _collect_uploads(human.content)
-        if not uploads:
-            return handler(request)
-
-        key = _message_key(human)
-        write_file = _find_write_file_tool(request.tools)
-        if write_file is None:
-            logger.warning(
-                "[stageChatUploads] write_file tool unavailable; leaving file blocks in the message"
-            )
-            return handler(request)
-
-        if key not in _staged_keys:
-            tool_runtime = _tool_runtime_for(request)
-            for upload in uploads:
-                try:
-                    write_file.invoke(
-                        {
-                            "file_path": upload.path,
-                            "content": upload.write_content,
-                            "runtime": tool_runtime,
-                        }
-                    )
-                except Exception:
-                    logger.exception("[stageChatUploads] failed to stage %s", upload.path)
-                    return handler(request)
-            _staged_keys.add(key)
-
-        rewritten = HumanMessage(
-            id=human.id,
-            content=_rewrite_content(human.content, uploads),
-            additional_kwargs={
-                **(human.additional_kwargs or {}),
-                STAGED_KWARG: [u.path for u in uploads],
-            },
-            response_metadata=human.response_metadata,
-        )
-        _pending_rewrites[key] = rewritten
-        next_messages = list(messages)
-        next_messages[last_human_index] = rewritten
-        return handler(request.override(messages=next_messages))
+        next_request = _stage_uploads_sync(request)
+        return handler(next_request if next_request is not None else request)
 
     def after_model(
         self,

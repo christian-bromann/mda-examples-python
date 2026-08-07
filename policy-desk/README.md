@@ -8,8 +8,8 @@ agent can extract text, annotate sections, and work from the files they uploaded
 1. Sign in with your company account (Supabase email/password in this demo)
 2. Attach a handbook, PTO policy, expense guidelines, or other policy doc
 3. Ask what applies to your situation — or ask the desk to summarize / compare
-4. The agent stages uploads under `/workspace/uploads/`, reads or extracts them
-   in an isolated sandbox, and answers with citations from the file
+4. The agent stages uploads under `/home/user/`, reads them in an isolated
+   sandbox, and answers with citations from the file
 
 Technically this shows Supabase JWT identity (`auth.supabase`) plus a managed
 sandbox (`define_sandbox`) behind a browser chat UI.
@@ -34,7 +34,7 @@ policy-desk/
 - **Use case** — authenticated Policy Desk: upload policies → ask → get guidance
 - **Supabase login** — JWKS `validated_token` identity (browser Bearer token)
 - **Managed sandbox** — per-thread LangSmith sandbox (files + shell)
-- **File Q&A** — chat upload → stage to `/workspace/uploads/` → read text (or `pypdf` for PDFs) → answer
+- **File Q&A** — chat upload → HTTP-stage to `/home/user/` → read text (PDFs extracted on upload) → answer
 - **Browser chat** — `@langchain/react` `useStream` + Vite proxy locally
 - **Private threads** — default identity scope isolates conversations per employee
 
@@ -44,9 +44,9 @@ policy-desk/
    source code, … — up to ~4MB).
 2. Ask a question (or send with an empty prompt — defaults to a policy summary
    request).
-3. Middleware stages the file under `/workspace/uploads/`.
-4. **Text files** — the agent `read_file`s them directly. **PDFs** — it installs
-   `pypdf` on demand, extracts to a sibling `.txt`, then answers from that text.
+3. Middleware HTTP-uploads the file under `/home/user/` (and for PDFs, a sibling
+   `.txt` extracted with `pypdf` on the host).
+4. The agent `read_file`s the staged text (or PDF `.txt`) and answers.
 
 ## Configure
 
