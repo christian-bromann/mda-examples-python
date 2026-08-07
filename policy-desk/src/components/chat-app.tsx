@@ -74,12 +74,13 @@ const UPLOAD_ACCEPT = [
 type ContentBlock =
   | { type: "text"; text: string }
   | {
-      type: "file";
-      mime_type: string;
-      source_type: "base64";
-      data: string;
-      metadata: { filename: string };
-    };
+    type: "file";
+    mime_type: string;
+    source_type: "base64";
+    data: string;
+    filename: string;
+    metadata: { filename: string };
+  };
 
 function dataUrlToBase64(url: string): string | null {
   const match = /^data:[^;]+;base64,([\s\S]+)$/i.exec(url);
@@ -108,6 +109,7 @@ function buildHumanContent(text: string, files: FileUIPart[]): ContentBlock[] {
       mime_type: mime,
       source_type: "base64",
       data,
+      filename,
       metadata: { filename },
     });
   }
