@@ -70,7 +70,6 @@ cp env.example .env
 | `VITE_SUPABASE_URL` | UI (build-time) | Publishable URL |
 | `VITE_SUPABASE_ANON_KEY` | UI (build-time) | Publishable / anon key |
 | `VITE_LANGGRAPH_API_URL` | UI (build-time) | Required for Cloudflare / remote UI |
-| `VITE_LANGGRAPH_ASSISTANT_ID` | UI (build-time) | Default `mda-example-policy-desk-py` |
 | `CLOUDFLARE_API_TOKEN` | wrangler | Workers deploy (`npm run deploy`) |
 | `CLOUDFLARE_ACCOUNT_ID` | wrangler | Cloudflare account ID |
 
