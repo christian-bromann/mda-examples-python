@@ -12,7 +12,7 @@ agent can extract text, annotate sections, and work from the files they uploaded
    in an isolated sandbox, and answers with citations from the file
 
 Technically this shows Supabase JWT identity (`auth.supabase`) plus a managed
-sandbox (`sandboxes.langsmith`) behind a browser chat UI.
+sandbox (`define_sandbox`) behind a browser chat UI.
 
 ## Layout
 
@@ -22,7 +22,7 @@ policy-desk/
   identity.py              # auth.supabase(project_ref=...)
   memory.py                # define_memory(scope="agent") — procedural only
   middleware/              # stage chat file uploads into the sandbox
-  sandbox/__init__.py      # sandboxes.langsmith(scope="thread")
+  sandbox/__init__.py      # define_sandbox(scope="thread")
   instructions.md
   src/                     # Vite + React chat (Supabase login)
   wrangler.jsonc           # Cloudflare Workers static assets for the UI
