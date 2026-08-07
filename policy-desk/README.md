@@ -108,7 +108,7 @@ In LangSmith, open the deployment and copy its **API URL** (also labeled
 **Resource URL** — not the deployment dashboard link). It looks like:
 
 ```text
-https://your-deployment.us.langsmith.app
+https://your-deployment.us.langgraph.app
 ```
 
 ### 2. Set `POLICY_DESK_DEPLOYMENT_API`

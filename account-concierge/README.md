@@ -67,8 +67,10 @@ make dev
 
 That starts two processes in parallel:
 
-- MDA / LangGraph on `http://localhost:2024` (often IPv6 `::1`)
+- MDA / LangGraph on `http://127.0.0.1:2024`
 - the product-API proxy on `http://127.0.0.1:4910`
+
+If the agent only binds IPv6, set `LANGGRAPH_API_URL=http://[::1]:2024` in `.env`.
 
 Or run them separately: `make agent` and `make proxy`.
 
@@ -84,7 +86,7 @@ THREAD=$(curl -s -b cookies.txt -X POST 'http://127.0.0.1:4910/threads' \
 echo "$THREAD"
 
 # 3. Ask the concierge who is signed in (assistant id = agent name)
-THREAD_ID=$(python -c "import json,sys; print(json.loads(sys.argv[1])['thread_id'])" "$THREAD")
+THREAD_ID=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['thread_id'])" "$THREAD")
 curl -s -b cookies.txt -X POST \
   "http://127.0.0.1:4910/threads/${THREAD_ID}/runs/wait" \
   -H 'content-type: application/json' \

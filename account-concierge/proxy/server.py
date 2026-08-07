@@ -73,8 +73,9 @@ def load_dotenv(path: Path) -> None:
 load_dotenv(ROOT / ".env")
 
 PORT = int(os.environ.get("PROXY_PORT", "4910"))
-# Prefer IPv6 loopback: langgraph-cli often binds `::1` only.
-UPSTREAM = os.environ.get("LANGGRAPH_API_URL", "http://[::1]:2024").rstrip("/")
+# Prefer IPv4 loopback: `mda dev` / langgraph-cli typically bind 127.0.0.1.
+# If your agent only listens on IPv6, set LANGGRAPH_API_URL=http://[::1]:2024.
+UPSTREAM = os.environ.get("LANGGRAPH_API_URL", "http://127.0.0.1:2024").rstrip("/")
 INGRESS_SECRET = os.environ.get("MDA_INGRESS_SECRET", "").strip()
 
 
