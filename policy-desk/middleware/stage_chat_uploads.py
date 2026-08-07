@@ -45,6 +45,7 @@ from langchain.agents.middleware import (
 )
 from langchain.tools import ToolRuntime
 from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langgraph.runtime import Runtime
 
@@ -353,13 +354,11 @@ def _filesystem_middleware_owner(tool: BaseTool) -> Any | None:
 def _tool_runtime_for(request: ModelRequest[Any]) -> ToolRuntime[Any, Any]:
     lg_runtime = request.runtime
     tools = [t for t in request.tools if isinstance(t, BaseTool)]
-    config: dict[str, Any] = {}
+    config: RunnableConfig = {}
     try:
         from langgraph.config import get_config
 
-        ambient = get_config()
-        if isinstance(ambient, dict):
-            config = ambient
+        config = get_config()
     except Exception:
         config = {}
     return ToolRuntime(
@@ -455,14 +454,16 @@ async def _stage_uploads(
         return None
 
     last_human_index = -1
+    human: HumanMessage | None = None
     for i in range(len(messages) - 1, -1, -1):
-        if isinstance(messages[i], HumanMessage):
+        message = messages[i]
+        if isinstance(message, HumanMessage):
             last_human_index = i
+            human = message
             break
-    if last_human_index < 0:
+    if human is None:
         return None
 
-    human = messages[last_human_index]
     if _already_staged(human):
         return None
 
@@ -504,14 +505,16 @@ def _stage_uploads_sync(request: ModelRequest[Any]) -> ModelRequest[Any] | None:
         return None
 
     last_human_index = -1
+    human: HumanMessage | None = None
     for i in range(len(messages) - 1, -1, -1):
-        if isinstance(messages[i], HumanMessage):
+        message = messages[i]
+        if isinstance(message, HumanMessage):
             last_human_index = i
+            human = message
             break
-    if last_human_index < 0:
+    if human is None:
         return None
 
-    human = messages[last_human_index]
     if _already_staged(human):
         return None
 
