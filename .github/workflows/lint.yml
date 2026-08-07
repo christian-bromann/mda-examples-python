@@ -33,9 +33,9 @@ jobs:
           path: mda-examples-python
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version-file: mda-examples-python/.python-version
+          python-version: "3.12"
 
       - name: Install dependencies
         working-directory: mda-examples-python/${{ matrix.agent }}

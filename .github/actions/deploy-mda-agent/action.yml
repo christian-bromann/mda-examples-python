@@ -23,14 +23,20 @@ runs:
         fi
 
     - name: Setup uv
-      uses: astral-sh/setup-uv@v5
+      # v6+: python-version no longer auto-activates a workspace-root .venv
+      # (v5 did, which made VIRTUAL_ENV point at the wrong path).
+      uses: astral-sh/setup-uv@v6
       with:
         python-version: "3.12"
 
     - name: Install dependencies
       shell: bash
       working-directory: ${{ inputs.examples-path }}/${{ inputs.agent }}
-      run: uv sync
+      run: |
+        uv sync
+        # mda deploy shells out to `python -m pip install --target .mda-emit-site
+        # ./__runtime__` for connector import resolution. uv venvs omit pip by default.
+        uv pip install pip
 
     - name: Write deploy .env
       shell: bash

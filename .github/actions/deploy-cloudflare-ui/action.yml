@@ -38,8 +38,9 @@ runs:
           echo "::error::Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
           exit 1
         fi
-        if [ -z "$VITE_LANGGRAPH_API_URL" ]; then
-          echo "::error::Missing VITE_LANGGRAPH_API_URL (LangSmith MDA deployment URL)"
+        # Obtain from LangSmith after the first agent deploy (API / Resource URL).
+        if [ -z "$POLICY_DESK_DEPLOYMENT_API" ]; then
+          echo "::error::Missing POLICY_DESK_DEPLOYMENT_API — LangSmith MDA deployment URL from the first agent deploy"
           exit 1
         fi
         npm run build:ui
