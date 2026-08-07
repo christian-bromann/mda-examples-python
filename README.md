@@ -24,7 +24,7 @@ Each subdirectory is a deployable agent project (`mda dev` / `mda deploy`).
 - [uv](https://docs.astral.sh/uv/)
 - Node.js 24+ (for `policy-desk` UI)
 - A LangSmith account with Managed Deep Agents access
-- The `mda` CLI (`pip install --pre managed-deepagents` or via each example’s
+- The `mda` CLI (`pip install managed-deepagents` or via each example’s
   `uv sync`)
 
 ## Getting started
