@@ -5,7 +5,7 @@ from __future__ import annotations
 from langchain.tools import tool
 from slack_sdk.errors import SlackApiError
 
-from tools.slack_client import json_result, slack_client_from_env, slack_error
+from tools.clients.slack import json_result, slack_client_from_env, slack_error
 
 
 @tool

@@ -5,7 +5,7 @@ from __future__ import annotations
 from github.GithubException import GithubException
 from langchain.tools import tool
 
-from tools.github_client import github_error, github_from_env, json_result
+from tools.clients.github import github_error, github_from_env, json_result
 
 
 @tool

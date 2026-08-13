@@ -13,7 +13,7 @@ Each subdirectory is a deployable agent project (`mda dev` / `mda deploy`).
 
 | Example                                         | What it shows                                                                                                         |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| [`daily-update/`](./daily-update)               | Weekday cron digest of GitHub + Slack activity, custom tools (no connectors), Slack DM delivery, durable memory       |
+| [`daily-update/`](./daily-update)               | Weekday cron digest of GitHub + Linear + Slack activity, custom tools (no connectors), Slack DM delivery, durable memory |
 | [`marketing-assistant/`](./marketing-assistant) | Weekday HN (+ optional X) topic scan → tweet drafts on Slack; revise in chat, post manually                           |
 | [`policy-desk/`](./policy-desk)                 | **Policy Desk** — employees sign in, upload handbooks/policies, get cited guidance in a per-thread sandbox            |
 | [`account-concierge/`](./account-concierge)     | **Account Concierge** — member agent behind your product API (session → proxy stamps ingress + user id)               |
@@ -37,7 +37,7 @@ cp env.example .env
 uv run mda dev .
 ```
 
-See each example’s README for secrets, Slack/GitHub setup, and deploy steps.
+See each example’s README for secrets, Slack/GitHub/Linear setup, and deploy steps.
 
 ## Lint
 
@@ -73,6 +73,7 @@ owns the name `GITHUB_TOKEN`.
 | `SLACK_SIGNING_SECRET`       | for Slack channels                            |
 | `SLACK_USER_TOKEN`           | for Slack search tools (`daily-update`)       |
 | `MDA_GITHUB_TOKEN`           | for GitHub tools (`daily-update`)             |
+| `LINEAR_API_KEY`             | for Linear tools (`daily-update`)             |
 | `X_BEARER_TOKEN`             | optional X search (`marketing-assistant`)     |
 | `MDA_GUEST_SIGNING_KEY`      | identity runtime (`policy-desk`)              |
 | `LANGSMITH_WORKSPACE_ID`     | if your key is org-scoped                     |
